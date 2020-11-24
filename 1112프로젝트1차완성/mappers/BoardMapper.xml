@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.ncs.boardMapper">
+	<sql id="search">
+		<choose>
+			<when test="searchType=='t'.toString()">
+				title
+			</when>
+
+			<when test="searchType=='c'.toString()">
+				contents
+			</when>
+			
+			<when test="searchType=='i'.toString()">
+				studentId
+			</when>
+			<otherwise>title</otherwise>
+		</choose>
+	</sql>
+	<select id="nblist" resultType="vo.NBoardVO">
+		select * from
+		(select b.*, ROW_NUMBER() OVER(order by seq desc)rnum from boardNotice b where
+		 <include refid="search"></include>
+		  like CONCAT(CONCAT('%',#{keyword}),'%'))
+		where rnum between #{sno} and #{eno}
+	</select>
+	
+	<select id="total" resultType="int">
+		select count(*) from boardNotice where 
+		<include refid="search"></include>
+		like CONCAT(CONCAT('%',#{keyword}),'%')
+	</select>	
+	
+	<select id="nbdetail" resultType="vo.NBoardVO">
+		select * from boardNotice where seq = #{seq}
+	</select>
+	
+	<select id="clist" resultType="vo.NCVO">
+	select * from boardComment where seq = #{seq} order by root 
+	</select>
+	
+	<insert id="nbcinsert">
+		insert into boardComment values(
+		#{seq}, 
+		#{studentId}, 
+		#{contents},
+		sysdate,
+		(select nvl(max(root),0)+1 from boardComment where seq=#{seq})
+			)
+	</insert>
+	
+	<delete id="nbdelete" >
+	 delete boardNotice where seq = #{seq}
+	</delete>
+	
+	<update id="nbupdate">
+		UPDATE boardNotice SET title = #{title},	contents = #{contents}	where seq= #{seq}
+	</update>
+	
+	<insert id="nbinsert">
+		insert into boardNotice values(
+		(select nvl(max(seq),0)+1 from boardNotice),
+		#{title},
+		#{contents},
+		SYSDATE,
+		0,
+		#{studentId},
+		'A') 
+	</insert>
+	
+	<delete id="nbcdelete">
+		delete boardComment where seq=#{seq} and root=#{root}
+	</delete>
+	
+	
+</mapper>
